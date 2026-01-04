@@ -27,23 +27,15 @@ public class IOTool {
     public static String read(final File path) {
         try {
             return Files.readString(path.toPath(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             return null;
-        }
-    }
-
-    public static boolean copy(final String jarSource, final File outFile) {
-        try (final var in = jarOpenFile(jarSource)) {
-            return write(in, outFile);
-        } catch (IOException e) {
-            return false;
         }
     }
 
     public static boolean copy(final File inFile, final File outFile) {
         try (final var in = Files.newInputStream(inFile.toPath())) {
             return write(in, outFile);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             return false;
         }
     }
@@ -126,13 +118,17 @@ public class IOTool {
         return false;
     }
 
+    public static boolean jarExtractZip(final String resource, final File output, final ClassLoader from) throws Exception {
+        return jarExtractZip(jarOpenFile(resource, from), output);
+    }
+
     // I MADE THIS THROW EXCEPTION BECAUSE THIS IS A WAY MORE COMPLEX TASK, AND THE CALLER SHOULD HANDLE IT
-    public static boolean jarExtractZip(final String zipResource, final File outDir) throws Exception {
-        try (final var zipStream = new BufferedInputStream(jarOpenFile(zipResource), BUFFER_SIZE); final var zip = new ZipInputStream(zipStream)) {
+    public static boolean jarExtractZip(final InputStream is, final File output) throws Exception {
+        try (final var in = new BufferedInputStream(is, BUFFER_SIZE); final var zip = new ZipInputStream(in)) {
             ZipEntry entry;
             final byte[] buffer = new byte[BUFFER_SIZE]; // THIS IS OUTSIDE THE LOOP TO AVOID MULTIPLE ALLOCATIONS PER ENTRY
             while ((entry = zip.getNextEntry()) != null) {
-                final File outFile = new File(outDir, entry.getName());
+                final File outFile = new File(output, entry.getName());
                 if (entry.isDirectory()) {
                     if (!outFile.exists() && !outFile.mkdirs()) {
                         return false;
@@ -156,13 +152,16 @@ public class IOTool {
     }
 
     // READ A FILE INSIDE A ZIP, WHICH IS INSIDE THE JAR RESOURCE AND RETURN AS STRING
-    public static String jarReadZip(final String zipResource, final String fileInZip) {
-        try (final var zipStream = jarOpenFile(zipResource);
-             final var zip = new ZipInputStream(zipStream)) {
+    public static String jarReadZip(final String zipResource, final String fileInZip, final ClassLoader from) {
+        return jarReadZip(jarOpenFile(zipResource, from), fileInZip);
+    }
+
+    public static String jarReadZip(final InputStream in, final String fileInZip) {
+        try (in; final var zip = new ZipInputStream(in)) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
                 if (entry.getName().equals(fileInZip)) {
-                    final byte[] data = readAllBytes(zip);
+                    final byte[] data = zip.readAllBytes();
                     return new String(data, StandardCharsets.UTF_8);
                 }
                 zip.closeEntry();
@@ -175,23 +174,23 @@ public class IOTool {
 
     public static String jarVersion() {
         try {
-            final String version = new Manifest(jarOpenFile("/META-INF/MANIFEST.MF")).getMainAttributes().getValue("version");
+            final String version = new Manifest(jarOpenFile("/META-INF/MANIFEST.MF", IOTool.class.getClassLoader())).getMainAttributes().getValue("version");
             return version == null ? "3.0.0-unknown" : version;
         } catch (final IOException e) {
             throw new RuntimeException("Failed to read self manifest", e);
         }
     }
 
-    public static String jarRead(final String from) {
-        try (final var in = jarOpenFile(from)) {
+    public static String jarRead(final String path) {
+        try (final var in = jarOpenFile(path, IOTool.class.getClassLoader())) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (final Exception e) {
             return null;
         }
     }
 
-    public static InputStream jarOpenFile(final String resourcePath) {
-        return jarOpenFile(resourcePath, IOTool.class.getClassLoader());
+    public static InputStream jarOpenFile(final String name) {
+        return jarOpenFile(name, IOTool.class.getClassLoader());
     }
 
     public static InputStream jarOpenFile(final String source, final ClassLoader classLoader) {
@@ -200,11 +199,4 @@ public class IOTool {
         return is;
     }
 
-    public static byte[] readAllBytes(final InputStream in) throws Exception {
-        if (in == null) throw new NullPointerException("InputStream is null");
-
-        try (in) {
-            return in.readAllBytes();
-        }
-    }
 }
