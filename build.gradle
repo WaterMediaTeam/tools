@@ -3,7 +3,18 @@ plugins {
 }
 
 group = 'org.watermedia'
-version = '1.0-SNAPSHOT'
+version = '3.0'
+
+base {
+    archivesName = id
+    libsDirectory = new File("builtJars/")
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_17
+}
+
 
 repositories {
     mavenCentral()
