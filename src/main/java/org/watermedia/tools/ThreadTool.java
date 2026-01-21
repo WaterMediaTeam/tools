@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ThreadTool {
     public static final HashMap<String, Integer> THREADS = new HashMap<>();
 
-    public static Thread createStarted(String name, Runnable runnable) {
+    public static Thread createStarted(final String name, final Runnable runnable) {
         final Thread t = new Thread(runnable, name);
         t.setDaemon(true);
         t.setPriority(Thread.NORM_PRIORITY);
@@ -15,7 +15,7 @@ public class ThreadTool {
         return t;
     }
 
-    public static boolean tryAdquireLock(Semaphore semaphore, long timeout, TimeUnit unit) {
+    public static boolean tryAdquireLock(final Semaphore semaphore, final long timeout, final TimeUnit unit) {
         try {
             return semaphore.tryAcquire(timeout, unit);
         } catch (final InterruptedException e) {
@@ -39,7 +39,7 @@ public class ThreadTool {
         };
     }
 
-    public static boolean join(Thread target) {
+    public static boolean join(final Thread target) {
         try {
             target.join();
             return true;
@@ -50,13 +50,26 @@ public class ThreadTool {
     }
 
     // RETURNS TRUE IF SLEEP WAS COMPLETED, FALSE IF WAS INTERRUPTED
-    public static boolean sleep(long timeoutMillis) {
+    public static boolean sleep(final long timeoutMillis) {
         try {
             Thread.sleep(timeoutMillis);
             return true;
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt(); // Restore interrupted status
             return false;
+        }
+    }
+
+    // SAME AS ABOVE BUT WITH A FUCKING YIELD
+    public static boolean sleepYield(final long timeoutMillis) {
+        try {
+            Thread.sleep(timeoutMillis);
+            return true;
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restore interrupted status
+            return false;
+        } finally {
+            Thread.yield();
         }
     }
 
@@ -68,7 +81,7 @@ public class ThreadTool {
      * @param runnable
      * @return
      */
-    public static Thread createStartedLoop(String name, Runnable runnable) {
+    public static Thread createStartedLoop(final String name, final Runnable runnable) {
         final int c = THREADS.computeIfAbsent(name, k -> 0);
         final Thread t = new Thread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
@@ -94,4 +107,11 @@ public class ThreadTool {
         return 8;
     }
 
+    public static boolean isInterrupted() {
+        return Thread.currentThread().isInterrupted();
+    }
+
+    public static void interrupt() {
+        Thread.currentThread().interrupt();
+    }
 }
