@@ -1,5 +1,6 @@
 package org.watermedia.tools;
 
+import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -60,5 +61,35 @@ public class DataTool {
         buffer.put((byte) g);
         buffer.put((byte) r);
         buffer.put(a);
+    }
+
+    public static BufferedImage toBgraBI(final int width, final int height, final ByteBuffer image) {
+        image.rewind();
+        final BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        final byte[] bgraArray = new byte[width * height * 4];
+        final int[] rgbaArray = new int[width * height];
+        image.get(bgraArray);
+
+        for  (int i = 0; i < width * height; i++) {
+            final int b = bgraArray[i * 4] & 0xFF;
+            final int g = bgraArray[i * 4 + 1] & 0xFF;
+            final int r = bgraArray[i * 4 + 2] & 0xFF;
+            final int a = bgraArray[i * 4 + 3] & 0xFF;
+            rgbaArray[i] = (a << 24) | (r << 16) | (g << 8) | b;
+        }
+
+        bufferedImage.getRaster().setDataElements(0, 0, width, height, rgbaArray);
+        return bufferedImage;
+    }
+
+    public static byte[] toArray(ByteBuffer frame) {
+        if (frame.hasArray()) {
+            return frame.array();
+        }
+
+        frame.rewind();
+        final byte[] array = new byte[frame.remaining()];
+        frame.get(array);
+        return array;
     }
 }
