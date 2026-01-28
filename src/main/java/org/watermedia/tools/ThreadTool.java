@@ -49,6 +49,16 @@ public class ThreadTool {
         }
     }
 
+    public static boolean wait(Object obj) {
+        try {
+            obj.wait();
+            return true;
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restore interrupted status
+            return false;
+        }
+    }
+
     // RETURNS TRUE IF SLEEP WAS COMPLETED, FALSE IF WAS INTERRUPTED
     public static boolean sleep(final long timeoutMillis) {
         try {

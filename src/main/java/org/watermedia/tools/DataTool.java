@@ -92,4 +92,26 @@ public class DataTool {
         frame.get(array);
         return array;
     }
+
+    public static int[] yuvToBgra(final byte[] yP, final byte[] uP, final byte[] vP, final int w, final int h, final int yS, final int uvS) {
+        final int[] bgra = new int[w * h];
+        for (int py = 0; py < h; py++)
+            for (int px = 0; px < w; px++) {
+                final int y = yP[py * yS + px] & 0xFF;
+                final int i = (py >> 1) * uvS + (px >> 1);
+                final int u = uP[i] & 0xFF;
+                final int v = vP[i] & 0xFF;
+                final int c = y - 16, d = u - 128, e = v - 128;
+                int r = (298 * c + 409 * e + 128) >> 8;
+                int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
+                int b = (298 * c + 516 * d + 128) >> 8;
+
+                r = Math.min(255, Math.max(0, r));
+                g = Math.min(255, Math.max(0, g));
+                b = Math.min(255, Math.max(0, b));
+
+                bgra[py * w + px] = (255 << 24) | (r << 16) | (g << 8) | b;
+            }
+        return bgra;
+    }
 }
