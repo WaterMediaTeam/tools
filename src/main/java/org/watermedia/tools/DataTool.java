@@ -1,6 +1,5 @@
 package org.watermedia.tools;
 
-import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -63,36 +62,8 @@ public class DataTool {
         buffer.put(a);
     }
 
-    public static BufferedImage toBgraBI(final int width, final int height, final ByteBuffer image) {
-        image.rewind();
-        final BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        final byte[] bgraArray = new byte[width * height * 4];
-        final int[] rgbaArray = new int[width * height];
-        image.get(bgraArray);
-
-        for  (int i = 0; i < width * height; i++) {
-            final int b = bgraArray[i * 4] & 0xFF;
-            final int g = bgraArray[i * 4 + 1] & 0xFF;
-            final int r = bgraArray[i * 4 + 2] & 0xFF;
-            final int a = bgraArray[i * 4 + 3] & 0xFF;
-            rgbaArray[i] = (a << 24) | (r << 16) | (g << 8) | b;
-        }
-
-        bufferedImage.getRaster().setDataElements(0, 0, width, height, rgbaArray);
-        return bufferedImage;
-    }
-
-    public static byte[] toArray(ByteBuffer frame) {
-        if (frame.hasArray()) {
-            return frame.array();
-        }
-
-        frame.rewind();
-        final byte[] array = new byte[frame.remaining()];
-        frame.get(array);
-        return array;
-    }
-
+    // CONVERTS YUV TO BGRA INT ARRAY (USED FOR ANIMATION COMPOSITING)
+    // INT LAYOUT: (A<<24 | R<<16 | G<<8 | B) - WHEN WRITTEN AS LITTLE-ENDIAN GIVES [B,G,R,A] BYTES
     public static int[] yuvToBgra(final byte[] yP, final byte[] uP, final byte[] vP, final int w, final int h, final int yS, final int uvS) {
         final int[] bgra = new int[w * h];
         for (int py = 0; py < h; py++)
@@ -113,5 +84,40 @@ public class DataTool {
                 bgra[py * w + px] = (255 << 24) | (r << 16) | (g << 8) | b;
             }
         return bgra;
+    }
+
+    // CONVERTS YUV DIRECTLY TO BGRA BYTEBUFFER
+    public static ByteBuffer yuvToBgraBuf(final byte[] yP, final byte[] uP, final byte[] vP, final int w, final int h, final int yS, final int uvS) {
+        final ByteBuffer bgra = ByteBuffer.allocateDirect(w * h * 4).order(ByteOrder.LITTLE_ENDIAN);
+        for (int py = 0; py < h; py++)
+            for (int px = 0; px < w; px++) {
+                final int y = yP[py * yS + px] & 0xFF;
+                final int i = (py >> 1) * uvS + (px >> 1);
+                final int u = uP[i] & 0xFF;
+                final int v = vP[i] & 0xFF;
+                final int c = y - 16, d = u - 128, e = v - 128;
+                int r = (298 * c + 409 * e + 128) >> 8;
+                int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
+                int b = (298 * c + 516 * d + 128) >> 8;
+
+                r = Math.min(255, Math.max(0, r));
+                g = Math.min(255, Math.max(0, g));
+                b = Math.min(255, Math.max(0, b));
+
+                // WRITE BGRA ORDER DIRECTLY
+                bgra.put((byte) b);
+                bgra.put((byte) g);
+                bgra.put((byte) r);
+                bgra.put((byte) 255); // FULL OPACITY
+            }
+        bgra.flip();
+        return bgra;
+    }
+
+    // THIS IS THE MOST EFFICIENT WAY TO CONVERT INT[] CANVAS TO BYTEBUFFER
+    public static ByteBuffer bgraToBuffer(final int[] bgra) {
+        final ByteBuffer buffer = ByteBuffer.allocate(bgra.length * 4).order(ByteOrder.LITTLE_ENDIAN);
+        buffer.asIntBuffer().put(bgra);
+        return buffer;
     }
 }
