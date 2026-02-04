@@ -33,7 +33,7 @@ public class ThreadTool {
         return r -> {
             final Thread t = new Thread(r);
             t.setDaemon(true);
-            t.setPriority(Math.clamp(priority, 1, 10));
+            t.setPriority(Math.min(Math.max(priority, Thread.MIN_PRIORITY), Thread.MAX_PRIORITY));
             t.setName(name + "-" + count.getAndIncrement());
             return t;
         };
