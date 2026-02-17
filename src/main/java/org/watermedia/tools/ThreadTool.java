@@ -106,6 +106,7 @@ public class ThreadTool {
     }
 
     public static int maxThreads() { return Runtime.getRuntime().availableProcessors(); }
+    public static int halfLeastThreads(int count) { return Math.max(count, halfThreads()); }
     public static int halfThreads() { return maxThreads() / 2; }
     public static int minThreads() {
         final int count = maxThreads();
