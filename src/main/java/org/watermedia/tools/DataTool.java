@@ -116,7 +116,7 @@ public class DataTool {
 
     // THIS IS THE MOST EFFICIENT WAY TO CONVERT INT[] CANVAS TO BYTEBUFFER
     public static ByteBuffer bgraToBuffer(final int[] bgra) {
-        final ByteBuffer buffer = ByteBuffer.allocate(bgra.length * 4).order(ByteOrder.LITTLE_ENDIAN);
+        final ByteBuffer buffer = ByteBuffer.allocateDirect(bgra.length * 4).order(ByteOrder.LITTLE_ENDIAN);
         buffer.asIntBuffer().put(bgra);
         return buffer;
     }
