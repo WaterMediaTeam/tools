@@ -174,7 +174,7 @@ public class IOTool {
 
     public static String jarVersion() {
         try {
-            final String version = new Manifest(jarOpenFile("/META-INF/MANIFEST.MF", IOTool.class.getClassLoader())).getMainAttributes().getValue("version");
+            final String version = new Manifest(jarOpenFile("/META-INF/MANIFEST.MF", IOTool.class.getClassLoader())).getMainAttributes().getValue("Implementation-Version");
             return version == null ? "3.0.0-unknown" : version;
         } catch (final IOException e) {
             throw new RuntimeException("Failed to read self manifest", e);
