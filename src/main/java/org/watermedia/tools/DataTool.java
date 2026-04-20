@@ -4,6 +4,16 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class DataTool {
+    public static <T> boolean contains(final T o, final T[] arr) {
+        for (final T element: arr)
+            if (element.equals(o)) return true;
+        return false;
+    }
+
+    public static byte bytesAt(final long packet, final int position) {
+        return (byte) ((packet >> (position * 8)) & 0xFF);
+    }
+
     public static int readBytesAsInt(final ByteBuffer buffer, final int length, final ByteOrder order) {
         int value = 0;
         for (int i = 0; i < length; i++) {

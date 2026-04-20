@@ -3,6 +3,8 @@ package org.watermedia.tools;
 import java.util.HashMap;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class ThreadTool {
     public static final HashMap<String, Integer> THREADS = new HashMap<>();
@@ -26,6 +28,20 @@ public class ThreadTool {
 
     public static Executor createScheduledThreadPool(final String name, final int threadCount, final int priority) {
         return Executors.newScheduledThreadPool(threadCount, createFactory(name, priority));
+    }
+
+    public static ThreadGroupFactory createThreadGroupFactory(final String name, final int priority) {
+        final AtomicInteger count = new AtomicInteger(0);
+        return () -> {
+            count.getAndIncrement();
+            return (childName, r) -> {
+                final Thread t = new Thread(r);
+                t.setDaemon(true);
+                t.setPriority(Math.min(Math.max(priority, Thread.MIN_PRIORITY), Thread.MAX_PRIORITY));
+                t.setName(name + "-" + count.get() + "-" + childName);
+                return t;
+            };
+        };
     }
 
     public static ThreadFactory createFactory(final String name, final int priority) {
@@ -124,5 +140,9 @@ public class ThreadTool {
 
     public static void interrupt() {
         Thread.currentThread().interrupt();
+    }
+
+    public interface ThreadGroupFactory {
+        BiFunction<String, Runnable, Thread> newFactory();
     }
 }
