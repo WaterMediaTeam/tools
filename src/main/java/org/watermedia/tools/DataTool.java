@@ -6,7 +6,7 @@ import java.nio.ByteOrder;
 public class DataTool {
     public static <T> boolean contains(final T o, final T[] arr) {
         for (final T element: arr)
-            if (element.equals(o)) return true;
+            if (element == o || (element != null && element.equals(o))) return true; // OBJECT.equals
         return false;
     }
 
