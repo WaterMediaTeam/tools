@@ -1,12 +1,50 @@
 package org.watermedia.tools;
 
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 public class DataTool {
+    public static boolean startsWidth(final String str, final String... beginnings) {
+        Objects.requireNonNull(str, "Srt cannot be null");
+        Objects.requireNonNull(beginnings, "String array cannot");
+        for (final var v: beginnings) {
+            if (str.startsWith(v)) return true;
+        }
+        return false;
+    }
+
+    public static Map<String, String> parseQuery(final String query) {
+        if (query == null || query.isEmpty()) return Map.of();
+
+        final var result = new HashMap<String, String>();
+        for (final var param: query.split("&")) {
+            final var pair = param.split("=", 2);
+            final var key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+            final var value = pair.length > 1 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
+            result.put(key, value);
+        }
+        return result;
+    }
+
+    public static <T> Map<T, T> arrayMapper(final T[] keyValue) {
+        if (keyValue.length % 2 != 0)
+            throw new IllegalArgumentException("Not all keys has values");
+
+        final var map = new HashMap<T, T>(keyValue.length / 2);
+        for (int i = 0; i < keyValue.length; i+=2) {
+            map.put(keyValue[i], keyValue[i + 1]);
+        }
+        return map;
+    }
+
     public static <T> boolean contains(final T o, final T[] arr) {
         for (final T element: arr)
-            if (element == o || (element != null && element.equals(o))) return true; // OBJECT.equals
+            if (Objects.equals(element, o)) return true; // OBJECT.equals
         return false;
     }
 

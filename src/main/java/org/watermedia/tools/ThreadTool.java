@@ -26,6 +26,10 @@ public class ThreadTool {
         return false;
     }
 
+    public static Executor createRecomendedThreadPool(final String name, final int priority) {
+        return Executors.newFixedThreadPool(halfLeastThreads(2), createFactory(name, priority));
+    }
+
     public static Executor createScheduledThreadPool(final String name, final int threadCount, final int priority) {
         return Executors.newScheduledThreadPool(threadCount, createFactory(name, priority));
     }
@@ -122,7 +126,7 @@ public class ThreadTool {
     }
 
     public static int maxThreads() { return Runtime.getRuntime().availableProcessors(); }
-    public static int halfLeastThreads(int count) { return Math.max(count, halfThreads()); }
+    public static int halfLeastThreads(final int count) { return Math.max(count, halfThreads()); }
     public static int halfThreads() { return maxThreads() / 2; }
     public static int minThreads() {
         final int count = maxThreads();
