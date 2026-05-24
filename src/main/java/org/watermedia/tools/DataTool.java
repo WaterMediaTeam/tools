@@ -144,11 +144,18 @@ public class DataTool {
 
     // CONVERTS YUV DIRECTLY TO BGRA BYTEBUFFER
     public static ByteBuffer yuvToBgraBuf(final byte[] yP, final byte[] uP, final byte[] vP, final int w, final int h, final int yS, final int uvS) {
-        final ByteBuffer bgra = ByteBuffer.allocateDirect(w * h * 4).order(ByteOrder.LITTLE_ENDIAN);
-        for (int py = 0; py < h; py++)
+        // Convert into an on-heap int[] first (tight allocation-free hot loop with array
+        // bounds-check elimination), then do a single bulk Unsafe copy into the direct buffer.
+        // This avoids ~w*h direct-buffer put/putInt calls, each of which would be a separate
+        // Unsafe access with its own bounds check.
+        final int[] packed = new int[w * h];
+        for (int py = 0; py < h; py++) {
+            final int yRow = py * yS;
+            final int uvRow = (py >> 1) * uvS;
+            final int dstRow = py * w;
             for (int px = 0; px < w; px++) {
-                final int y = yP[py * yS + px] & 0xFF;
-                final int i = (py >> 1) * uvS + (px >> 1);
+                final int y = yP[yRow + px] & 0xFF;
+                final int i = uvRow + (px >> 1);
                 final int u = uP[i] & 0xFF;
                 final int v = vP[i] & 0xFF;
                 final int c = y - 16, d = u - 128, e = v - 128;
@@ -156,17 +163,17 @@ public class DataTool {
                 int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
                 int b = (298 * c + 516 * d + 128) >> 8;
 
-                r = Math.min(255, Math.max(0, r));
-                g = Math.min(255, Math.max(0, g));
-                b = Math.min(255, Math.max(0, b));
+                if (r < 0) r = 0; else if (r > 255) r = 255;
+                if (g < 0) g = 0; else if (g > 255) g = 255;
+                if (b < 0) b = 0; else if (b > 255) b = 255;
 
-                // WRITE BGRA ORDER DIRECTLY
-                bgra.put((byte) b);
-                bgra.put((byte) g);
-                bgra.put((byte) r);
-                bgra.put((byte) 255); // FULL OPACITY
+                // Pack as little-endian int: when copied into LE direct buffer this lands as
+                // B, G, R, A in memory, matching the WEBP reader's expected layout.
+                packed[dstRow + px] = (0xFF << 24) | (r << 16) | (g << 8) | b;
             }
-        bgra.flip();
+        }
+        final ByteBuffer bgra = ByteBuffer.allocateDirect(w * h * 4).order(ByteOrder.LITTLE_ENDIAN);
+        bgra.asIntBuffer().put(packed);
         return bgra;
     }
 
