@@ -9,6 +9,14 @@ import java.util.Map;
 import java.util.Objects;
 
 public class DataTool {
+    public static boolean startsWith(final ByteBuffer buffer, final int offset, final byte[] header) {
+        if (buffer.limit() - offset < header.length) return false;
+        for (int i = 0; i < header.length; i++) {
+            if (buffer.get(offset + i) != header[i]) return false;
+        }
+        return true;
+    }
+
     public static boolean startsWidth(final String str, final String... beginnings) {
         Objects.requireNonNull(str, "Srt cannot be null");
         Objects.requireNonNull(beginnings, "String array cannot");
@@ -100,7 +108,7 @@ public class DataTool {
         return order == ByteOrder.BIG_ENDIAN ? top - pos : pos;
     }
 
-    public static void rgbaToBrga(final ByteBuffer buffer, final int pixel, final byte a) {
+    public static void rgbaToBgra(final ByteBuffer buffer, final int pixel, final byte a) {
         final int r = (pixel >> 16) & 0xFF;
         final int g = (pixel >> 8) & 0xFF;
         final int b = pixel & 0xFF;
