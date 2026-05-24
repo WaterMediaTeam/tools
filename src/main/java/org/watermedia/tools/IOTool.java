@@ -1,11 +1,15 @@
 package org.watermedia.tools;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -116,6 +120,31 @@ public class IOTool {
             } catch (final Exception ignored) {}
         }
         return false;
+    }
+
+    public static byte[] readLimited(final InputStream in, final long maxBytes, final long expectedBytes) throws IOException {
+        final int initialCapacity = expectedBytes > 0L && expectedBytes <= Integer.MAX_VALUE
+                ? (int) expectedBytes
+                : BUFFER_SIZE;
+        final ByteArrayOutputStream out = new ByteArrayOutputStream(initialCapacity);
+        final byte[] buffer = new byte[BUFFER_SIZE];
+        long total = 0L;
+        while (true) {
+            final int read = in.read(buffer);
+            if (read < 0) break;
+            total += read;
+            if (total > maxBytes) throw new IOException("Input exceeds limit (" + total + " > " + maxBytes + " bytes)");
+            out.write(buffer, 0, read);
+        }
+        return out.toByteArray();
+    }
+
+    public static void move(final Path from, final Path to) throws IOException {
+        try {
+            Files.move(from, to, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } catch (final AtomicMoveNotSupportedException e) {
+            Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     public static boolean jarExtractZip(final String resource, final File output, final ClassLoader from) throws Exception {
