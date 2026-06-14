@@ -50,10 +50,27 @@ public class DataTool {
         return map;
     }
 
-    public static <T> boolean contains(final T o, final T[] arr) {
+    public static boolean endsWidth(final String o, final String... arr) {
+        for (final String element: arr)
+            if (element != null && o.endsWith(element)) return true;
+        return false;
+    }
+
+    public static boolean containsIgnoreCase(final String o, final String... arr) {
+        for (final String element: arr)
+            if (element != null && element.equalsIgnoreCase(o)) return true; // OBJECT.equals
+        return false;
+    }
+
+    @SafeVarargs
+    public static <T> boolean contains(final T o, final T... arr) {
         for (final T element: arr)
             if (Objects.equals(element, o)) return true; // OBJECT.equals
         return false;
+    }
+
+    public static boolean contains(final String o, final String in) {
+        return o != null && o.contains(in);
     }
 
     public static byte bytesAt(final long packet, final int position) {
@@ -182,5 +199,23 @@ public class DataTool {
         final ByteBuffer buffer = ByteBuffer.allocateDirect(bgra.length * 4).order(ByteOrder.LITTLE_ENDIAN);
         buffer.asIntBuffer().put(bgra);
         return buffer;
+    }
+
+    public static int toInt(final String s, final int def) {
+        if (s == null) return def;
+        try { return Integer.parseInt(s.trim()); }
+        catch (final NumberFormatException e) { return def; }
+    }
+
+    public static long toLong(final String s, final long def) {
+        if (s == null) return def;
+        try { return Long.parseLong(s.trim()); }
+        catch (final NumberFormatException e) { return def; }
+    }
+
+    public static double toDouble(final String s, final double def) {
+        if (s == null) return def;
+        try { return Double.parseDouble(s.trim()); }
+        catch (final NumberFormatException e) { return def; }
     }
 }
