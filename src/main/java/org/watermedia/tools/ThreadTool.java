@@ -10,23 +10,26 @@ public class ThreadTool {
     public static final HashMap<String, Integer> THREADS = new HashMap<>();
 
     public static Thread createStarted(final String name, final Runnable runnable) {
-        final Thread t = new Thread(runnable, name);
+        // AUTO-APPEND A PER-NAME COUNTER (name-0, name-1, ...) CONSISTENTLY WITH createStartedLoop
+        final int c = THREADS.computeIfAbsent(name, k -> 0);
+        final Thread t = new Thread(runnable, name + "-" + c);
+        THREADS.put(name, c + 1);
         t.setDaemon(true);
         t.setPriority(Thread.NORM_PRIORITY);
         t.start();
         return t;
     }
 
-    public static boolean tryAdquireLock(final Semaphore semaphore, final long timeout, final TimeUnit unit) {
+    public static boolean tryAcquireLock(final Semaphore semaphore, final long timeout, final TimeUnit unit) {
         try {
             return semaphore.tryAcquire(timeout, unit);
         } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore interrupted status
+            Thread.currentThread().interrupt(); // RESTORE INTERRUPTED STATUS
         }
         return false;
     }
 
-    public static Executor createRecomendedThreadPool(final String name, final int priority) {
+    public static Executor createRecommendedThreadPool(final String name, final int priority) {
         return Executors.newFixedThreadPool(halfLeastThreads(2), createFactory(name, priority));
     }
 
@@ -64,39 +67,39 @@ public class ThreadTool {
             target.join();
             return true;
         } catch (final InterruptedException e) {
-            target.interrupt(); // restore interrupt status
+            target.interrupt(); // RESTORE INTERRUPTED STATUS
             return false;
         }
     }
 
-    public static boolean wait(Object obj) {
+    public static boolean wait(final Object obj) {
         try {
             obj.wait();
             return true;
         } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore interrupted status
+            Thread.currentThread().interrupt(); // RESTORE INTERRUPTED STATUS
             return false;
         }
     }
 
-    // RETURNS TRUE IF SLEEP WAS COMPLETED, FALSE IF WAS INTERRUPTED
+    // RETURNS TRUE IF THE SLEEP COMPLETED, FALSE IF IT WAS INTERRUPTED
     public static boolean sleep(final long timeoutMillis) {
         try {
             Thread.sleep(timeoutMillis);
             return true;
         } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore interrupted status
+            Thread.currentThread().interrupt(); // RESTORE INTERRUPTED STATUS
             return false;
         }
     }
 
-    // SAME AS ABOVE BUT WITH A FUCKING YIELD
+    // SAME AS sleep BUT YIELDS THE CPU AFTERWARDS
     public static boolean sleepYield(final long timeoutMillis) {
         try {
             Thread.sleep(timeoutMillis);
             return true;
         } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore interrupted status
+            Thread.currentThread().interrupt(); // RESTORE INTERRUPTED STATUS
             return false;
         } finally {
             Thread.yield();
@@ -104,12 +107,12 @@ public class ThreadTool {
     }
 
     /**
-     * Creates a new thread, already started with a while loop.
-     * Thread checks for the interruped status on the loop, which will stop the loop
-     * if the thread got interrumped
-     * @param name
-     * @param runnable
-     * @return
+     * Creates and starts a daemon thread that runs {@code runnable} in a loop until interrupted.
+     * The loop checks the interrupted status on each iteration, so interrupting the thread stops it.
+     *
+     * @param name     base thread name; a per-name counter is appended ({@code name-0}, {@code name-1}, ...)
+     * @param runnable the body executed on every loop iteration
+     * @return the started thread
      */
     public static Thread createStartedLoop(final String name, final Runnable runnable) {
         final int c = THREADS.computeIfAbsent(name, k -> 0);
@@ -119,7 +122,7 @@ public class ThreadTool {
             }
         }, name + "-" + c);
         THREADS.put(name, c + 1);
-        t.setDaemon(true); // PLEASE KILL YOURSELF WHEN THE MAIN THREAD DO IT TOO
+        t.setDaemon(true); // DIE ALONGSIDE THE MAIN THREAD
         t.setPriority(Thread.NORM_PRIORITY);
         t.start();
         return t;

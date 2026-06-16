@@ -17,11 +17,11 @@ public class DataTool {
         return true;
     }
 
-    public static boolean startsWidth(final String str, final String... beginnings) {
-        Objects.requireNonNull(str, "Srt cannot be null");
-        Objects.requireNonNull(beginnings, "String array cannot");
-        for (final var v: beginnings) {
-            if (str.startsWith(v)) return true;
+    public static boolean startsWith(final String str, final String... prefixes) {
+        Objects.requireNonNull(str, "String cannot be null");
+        Objects.requireNonNull(prefixes, "Prefix array cannot be null");
+        for (final var prefix: prefixes) {
+            if (str.startsWith(prefix)) return true;
         }
         return false;
     }
@@ -41,7 +41,7 @@ public class DataTool {
 
     public static <T> Map<T, T> arrayMapper(final T[] keyValue) {
         if (keyValue.length % 2 != 0)
-            throw new IllegalArgumentException("Not all keys has values");
+            throw new IllegalArgumentException("Not all keys have values");
 
         final var map = new HashMap<T, T>(keyValue.length / 2);
         for (int i = 0; i < keyValue.length; i+=2) {
@@ -50,22 +50,22 @@ public class DataTool {
         return map;
     }
 
-    public static boolean endsWidth(final String o, final String... arr) {
+    public static boolean endsWith(final String o, final String... arr) {
         for (final String element: arr)
             if (element != null && o.endsWith(element)) return true;
         return false;
     }
 
-    public static boolean containsIgnoreCase(final String o, final String... arr) {
+    public static boolean equalsAnyIgnoreCase(final String o, final String... arr) {
         for (final String element: arr)
-            if (element != null && element.equalsIgnoreCase(o)) return true; // OBJECT.equals
+            if (element != null && element.equalsIgnoreCase(o)) return true; // CASE-INSENSITIVE EQUALITY CHECK
         return false;
     }
 
     @SafeVarargs
     public static <T> boolean contains(final T o, final T... arr) {
         for (final T element: arr)
-            if (Objects.equals(element, o)) return true; // OBJECT.equals
+            if (Objects.equals(element, o)) return true; // OBJECT EQUALITY CHECK
         return false;
     }
 
@@ -80,7 +80,7 @@ public class DataTool {
     public static int readBytesAsInt(final ByteBuffer buffer, final int length, final ByteOrder order) {
         int value = 0;
         for (int i = 0; i < length; i++) {
-            value |= (buffer.get() & 0xFF) << toLong$pos((length * 8) - 8, i * 8, order);
+            value |= (buffer.get() & 0xFF) << shiftFor((length * 8) - 8, i * 8, order);
         }
         return value;
     }
@@ -88,7 +88,7 @@ public class DataTool {
     public static long readBytesAsLong(final ByteBuffer buffer, final int length, final ByteOrder order) {
         long value = 0;
         for (int i = 0; i < length; i++) {
-            value |= (long) (buffer.get() & 0xFF) << toLong$pos((length * 8) - 8, i * 8, order);
+            value |= (long) (buffer.get() & 0xFF) << shiftFor((length * 8) - 8, i * 8, order);
         }
         return value;
     }
@@ -103,25 +103,25 @@ public class DataTool {
     }
 
     public static short toShort(final byte one, final byte two, final ByteOrder order) {
-        return (short) ((one & 0xFF) << toLong$pos(8, 0, order) | (two & 0xFF) << toLong$pos(8, 8, order));
+        return (short) ((one & 0xFF) << shiftFor(8, 0, order) | (two & 0xFF) << shiftFor(8, 8, order));
     }
 
     public static int toInt(final byte one, final byte two, final byte three, final byte four, final ByteOrder order) {
-        return (one & 0xFF) << toLong$pos(24, 0, order) | (two & 0xFF) << toLong$pos(24, 8, order) | (three & 0xFF) << toLong$pos(24, 16, order) | (four & 0xFF) << toLong$pos(24, 24, order);
+        return (one & 0xFF) << shiftFor(24, 0, order) | (two & 0xFF) << shiftFor(24, 8, order) | (three & 0xFF) << shiftFor(24, 16, order) | (four & 0xFF) << shiftFor(24, 24, order);
     }
 
     public static long toLong(final byte b1, final byte b2, final byte b3, final byte b4, final byte b5, final byte b6, final byte b7, final byte b8, final ByteOrder order) {
-        return ((long)(b1 & 0xFF) << toLong$pos(56, 0, order)) |
-                ((long)(b2 & 0xFF) << toLong$pos(56, 8, order)) |
-                ((long)(b3 & 0xFF) << toLong$pos(56, 16, order)) |
-                ((long)(b4 & 0xFF) << toLong$pos(56, 24, order)) |
-                ((long)(b5 & 0xFF) << toLong$pos(56, 32, order)) |
-                ((long)(b6 & 0xFF) << toLong$pos(56, 40, order)) |
-                ((long)(b7 & 0xFF) << toLong$pos(56, 48, order))  |
-                ((long)(b8 & 0xFF) << toLong$pos(56, 56, order));
+        return ((long)(b1 & 0xFF) << shiftFor(56, 0, order)) |
+                ((long)(b2 & 0xFF) << shiftFor(56, 8, order)) |
+                ((long)(b3 & 0xFF) << shiftFor(56, 16, order)) |
+                ((long)(b4 & 0xFF) << shiftFor(56, 24, order)) |
+                ((long)(b5 & 0xFF) << shiftFor(56, 32, order)) |
+                ((long)(b6 & 0xFF) << shiftFor(56, 40, order)) |
+                ((long)(b7 & 0xFF) << shiftFor(56, 48, order))  |
+                ((long)(b8 & 0xFF) << shiftFor(56, 56, order));
     }
 
-    private static int toLong$pos(final int top, final int pos, final ByteOrder order) {
+    private static int shiftFor(final int top, final int pos, final ByteOrder order) {
         return order == ByteOrder.BIG_ENDIAN ? top - pos : pos;
     }
 
@@ -161,10 +161,10 @@ public class DataTool {
 
     // CONVERTS YUV DIRECTLY TO BGRA BYTEBUFFER
     public static ByteBuffer yuvToBgraBuf(final byte[] yP, final byte[] uP, final byte[] vP, final int w, final int h, final int yS, final int uvS) {
-        // Convert into an on-heap int[] first (tight allocation-free hot loop with array
-        // bounds-check elimination), then do a single bulk Unsafe copy into the direct buffer.
-        // This avoids ~w*h direct-buffer put/putInt calls, each of which would be a separate
-        // Unsafe access with its own bounds check.
+        // CONVERT INTO AN ON-HEAP int[] FIRST (TIGHT ALLOCATION-FREE HOT LOOP WITH ARRAY
+        // BOUNDS-CHECK ELIMINATION), THEN DO A SINGLE BULK COPY INTO THE DIRECT BUFFER.
+        // THIS AVOIDS ~w*h DIRECT-BUFFER put/putInt CALLS, EACH OF WHICH WOULD BE A SEPARATE
+        // ACCESS WITH ITS OWN BOUNDS CHECK.
         final int[] packed = new int[w * h];
         for (int py = 0; py < h; py++) {
             final int yRow = py * yS;
@@ -184,8 +184,8 @@ public class DataTool {
                 if (g < 0) g = 0; else if (g > 255) g = 255;
                 if (b < 0) b = 0; else if (b > 255) b = 255;
 
-                // Pack as little-endian int: when copied into LE direct buffer this lands as
-                // B, G, R, A in memory, matching the WEBP reader's expected layout.
+                // PACK AS LITTLE-ENDIAN INT: WHEN COPIED INTO LE DIRECT BUFFER THIS LANDS AS
+                // B, G, R, A IN MEMORY, MATCHING THE WEBP READER'S EXPECTED LAYOUT.
                 packed[dstRow + px] = (0xFF << 24) | (r << 16) | (g << 8) | b;
             }
         }

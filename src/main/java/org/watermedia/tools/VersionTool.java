@@ -4,7 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Encapsulation of version information and related behaviors.
+ * Encapsulates semantic version information and related comparison behaviors.
  */
 public class VersionTool implements Comparable<VersionTool> {
     private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)[\\-_\\s]?(.*)");
@@ -16,7 +16,7 @@ public class VersionTool implements Comparable<VersionTool> {
     public final String extra;
 
     /**
-     * Create a new version.
+     * Creates a new version from the given version string.
      *
      * @param version version string
      */
@@ -39,8 +39,9 @@ public class VersionTool implements Comparable<VersionTool> {
             this.extra = null;
         }
     }
+
     /**
-     * Test whether this version is at least the required version.
+     * Tests whether this version is at least the required version.
      *
      * @param required required version
      * @return <code>true</code> if this version is at least (equal to or greater than) the required version
@@ -50,18 +51,20 @@ public class VersionTool implements Comparable<VersionTool> {
     }
 
     /**
-     * Test whether this version is in range of the required versions.
+     * Tests whether this version falls within the inclusive-exclusive range {@code [min, max)}.
      *
-     * @param min required version
-     * @return <code>true</code> if this version is at least (equal to or greater than) the required version
+     * @param min minimum version (inclusive)
+     * @param max maximum version (exclusive)
+     * @return <code>true</code> if this version is at least {@code min} and strictly less than {@code max}
      */
     public boolean inRange(final VersionTool min, final VersionTool max) {
         return this.compareTo(min) >= 0 && this.compareTo(max) < 0;
     }
 
     /**
-     * Check if version is 0.0.0, indicating no version or null argument version.
-     * @return true if version is 0.0.0, false otherwise
+     * Checks whether this version is 0.0.0, indicating no version or a null version argument.
+     *
+     * @return <code>true</code> if this version is 0.0.0, <code>false</code> otherwise
      */
     public boolean isZero() {
         return this.major == 0 && this.minor == 0 && this.revision == 0 && (this.extra == null || this.extra.isEmpty());

@@ -18,7 +18,7 @@ public class IOTool {
     public static final int BUFFER_SIZE = 1024 * 64; // 64 KB
     public static final String VERSION_FILE = "version.cfg";
 
-    public static String getPlatformClassifier() {
+    public static String platformClassifier() {
         final String os = System.getProperty("os.name").toLowerCase();
         final String arch = System.getProperty("os.arch").toLowerCase();
 
@@ -95,7 +95,7 @@ public class IOTool {
         return deletedCount;
     }
 
-    public static int deleteSchedule(final File path) {
+    public static int deleteOnExit(final File path) {
         int deletedCount = 0;
         if (path == null || !path.exists()) {
             return 0;
@@ -104,7 +104,7 @@ public class IOTool {
             final File[] files = path.listFiles();
             if (files != null) {
                 for (final File file: files) {
-                    deletedCount += deleteSchedule(file);
+                    deletedCount += deleteOnExit(file);
                 }
             }
         }
@@ -133,7 +133,7 @@ public class IOTool {
             final int read = in.read(buffer);
             if (read < 0) break;
             total += read;
-            if (total > maxBytes) throw new IOException("Input exceeds limit (" + total + " > " + maxBytes + " bytes)");
+            if (total > maxBytes) throw new IOException("Failed to read input: exceeds limit (" + total + " > " + maxBytes + " bytes)");
             out.write(buffer, 0, read);
         }
         return out.toByteArray();
@@ -151,7 +151,7 @@ public class IOTool {
         return jarExtractZip(jarOpenFile(resource, from), output);
     }
 
-    // I MADE THIS THROW EXCEPTION BECAUSE THIS IS A WAY MORE COMPLEX TASK, AND THE CALLER SHOULD HANDLE IT
+    // THROWS BECAUSE THIS IS A MORE COMPLEX TASK AND THE CALLER SHOULD HANDLE FAILURES
     public static boolean jarExtractZip(final InputStream is, final File output) throws Exception {
         try (final var in = new BufferedInputStream(is, BUFFER_SIZE); final var zip = new ZipInputStream(in)) {
             ZipEntry entry;
