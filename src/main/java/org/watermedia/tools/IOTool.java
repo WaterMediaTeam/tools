@@ -10,6 +10,8 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.util.Locale;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -26,6 +28,24 @@ public class IOTool {
         final String archSuffix = (arch.contains("aarch64") || arch.contains("arm64")) ? "-arm64" : "";
 
         return osName + archSuffix;
+    }
+
+    // NORMALISED OS TOKEN ("windows"/"macos"/"linux"), OR null IF UNSUPPORTED. UNLIKE platformClassifier
+    // (WHICH NAMES ffmpeg ZIPS), THIS FEEDS PER-OS/ARCH ASSET RESOLUTION FOR DOWNLOADED NATIVE BINARIES.
+    public static String os() {
+        final String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+        if (os.contains("win")) return "windows";
+        if (os.contains("mac") || os.contains("darwin")) return "macos";
+        if (os.contains("nux") || os.contains("nix") || os.contains("aix")) return "linux";
+        return null;
+    }
+
+    // NORMALISED ARCH TOKEN ("x86_64"/"aarch64"), OR null IF UNSUPPORTED
+    public static String arch() {
+        final String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
+        if (arch.equals("amd64") || arch.equals("x86_64") || arch.equals("x64")) return "x86_64";
+        if (arch.equals("aarch64") || arch.equals("arm64")) return "aarch64";
+        return null;
     }
 
     public static String read(final File path) {
@@ -144,6 +164,45 @@ public class IOTool {
             Files.move(from, to, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } catch (final AtomicMoveNotSupportedException e) {
             Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    // MARKS file EXECUTABLE (POSIX); A NO-OP WHERE THE OS HAS NO SUCH BIT (E.G. WINDOWS)
+    public static void makeExecutable(final Path file) {
+        file.toFile().setExecutable(true);
+    }
+
+    // LOWERCASE HEX SHA-256 OF file
+    public static String sha256(final Path file) throws IOException {
+        final MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (final Exception e) {
+            throw new IOException("SHA-256 is unavailable", e);
+        }
+        try (final InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
+            final byte[] buffer = new byte[BUFFER_SIZE];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+        }
+        final byte[] hash = digest.digest();
+        final StringBuilder sb = new StringBuilder(hash.length * 2);
+        for (final byte b : hash) {
+            sb.append(Character.forDigit((b >> 4) & 0xF, 16)).append(Character.forDigit(b & 0xF, 16));
+        }
+        return sb.toString();
+    }
+
+    // THROWS (AND DELETES file) IF ITS SHA-256 DOES NOT MATCH expected (CASE-INSENSITIVE HEX). THE DELETE
+    // LETS A RETRY RE-DOWNLOAD INSTEAD OF TRUSTING A CORRUPT FILE.
+    public static void verifySha256(final Path file, final String expected) throws IOException {
+        final String actual = sha256(file);
+        if (!expected.equalsIgnoreCase(actual)) {
+            Files.deleteIfExists(file);
+            throw new IOException("SHA-256 mismatch for " + file.getFileName()
+                    + " (expected " + expected + ", got " + actual + ")");
         }
     }
 
